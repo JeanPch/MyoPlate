@@ -414,7 +414,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 7px 10px;
     background: transparent;
     border: 0;
     cursor: pointer;
@@ -451,6 +451,7 @@
     letter-spacing: 0.055em;
     color: var(--fg-muted);
     margin: 0;
+    white-space: nowrap;
   }
   .panel-card-summary {
     font-size: 10.5px;
@@ -482,11 +483,11 @@
     transform: rotate(-90deg);
   }
   .panel-card-body {
-    padding: 8px 10px 10px;
+    padding: 7px 10px 9px;
     border-top: 1px solid var(--line-subtle);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6.5px;
   }
   .panel-card.is-collapsed .panel-card-body {
     display: none;
@@ -495,7 +496,21 @@
   .ctrl-item {
     display: flex;
     flex-direction: column;
-    gap: 3.5px;
+    gap: 3px;
+  }
+  .ctrl-item.ctrl-inline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ctrl-item.ctrl-inline .ctrl-label {
+    white-space: nowrap;
+    flex: none;
+  }
+  .ctrl-item.ctrl-inline .seg {
+    flex: 0 1 154px;
+    min-width: 130px;
   }
   .ctrl-label-row {
     display: flex;
@@ -1791,10 +1806,21 @@
       padding: 10px 10px 16px;
     }
     .panel-card-title {
-      font-size: 10.5px;
+      font-size: 10px;
+      letter-spacing: 0.04em;
     }
     .panel-card-summary {
-      max-width: 108px;
+      font-size: 9.5px;
+      padding: 1px 5px;
+      max-width: 86px;
+    }
+    .seg button {
+      font-size: 11px;
+      padding: 4.5px 3.5px;
+    }
+    .seg[data-key="zone"] button {
+      font-size: 10.5px;
+      padding: 5px 2px;
     }
   }
 
@@ -1954,9 +1980,10 @@
           <button type="button" data-value="en">EN</button>
         </div>
         <button type="button" class="icon-tool-btn" id="btnCollapseLeft" title="Masquer paramètres (P)" aria-label="Masquer paramètres">
-          <svg viewBox="0 0 20 20" width="13.5" height="13.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12.5 5l-5 5 5 5"/>
-            <path d="M5 4v12"/>
+          <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.5" y="3.5" width="15" height="13" rx="2.2"/>
+            <path d="M7.5 3.5v13"/>
+            <path d="M13.5 7.5L11 10l2.5 2.5"/>
           </svg>
         </button>
         <button type="button" class="panel-close-btn" id="btnCloseLeft" aria-label="Fermer" title="Fermer">&times;</button>
@@ -2221,7 +2248,7 @@
           </div>
         </div>
 
-        <div class="ctrl-item">
+        <div class="ctrl-item ctrl-inline">
           <span class="ctrl-label" data-i18n="bodyTone">Teinte du corps</span>
           <div class="seg" data-key="body" role="group" aria-label="Teinte du corps">
             <button type="button" data-value="light">
@@ -2303,9 +2330,10 @@
 <!-- 2. SCÈNE CENTRALE : CARTE ANATOMIQUE (PLOTLY-STYLE ZOOM) -->
 <main id="stage-wrapper">
   <button type="button" id="btnExpandLeft" title="Afficher paramètres (P)" aria-label="Afficher paramètres">
-    <svg viewBox="0 0 20 20" width="13.5" height="13.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M7.5 5l5 5-5 5"/>
-      <path d="M15 4v12"/>
+    <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2.5" y="3.5" width="15" height="13" rx="2.2"/>
+      <path d="M7.5 3.5v13"/>
+      <path d="M11 7.5L13.5 10 11 12.5"/>
     </svg>
     <span data-i18n="navControls">Paramètres</span>
   </button>
@@ -2636,7 +2664,7 @@ const I18N = {
     colorMode: 'Coloration',
     palette: 'Par muscle',
     uniform: 'Rouge uni',
-    heat: 'Heatmap % CMV',
+    heat: 'Heatmap %\u00A0CMV',
     hintHeatEmpty: 'Aucune valeur % CMV chargée.',
     hintHeatAction: 'Importer →',
     contextLabel: 'Autres muscles',
@@ -2797,7 +2825,7 @@ const I18N = {
     colorMode: 'Coloring',
     palette: 'Per muscle',
     uniform: 'Uniform red',
-    heat: 'Heatmap % MVC',
+    heat: 'Heatmap %\u00A0MVC',
     hintHeatEmpty: 'No % MVC values loaded yet.',
     hintHeatAction: 'Import →',
     contextLabel: 'Other muscles',
@@ -3202,20 +3230,36 @@ function planLabels(view, selected, forced, yMin, yMax, size, gap) {
     items.push({ entry, comps });
   });
 
+  const midlinePool = [];
   items.forEach(item => {
     const sides = new Set(item.comps.map(c => c.side));
     const midline = item.comps.length === 1 && Math.abs(item.comps[0].cx - centerX) < 22;
-    let side;
     if (forced) {
-      side = forced;
+      item.side = forced;
+      counts[forced]++;
     } else if (sides.size === 1 && !midline) {
-      side = [...sides][0];
+      item.side = [...sides][0];
+      counts[item.side]++;
+    } else if (sides.size > 1) {
+      item.side = counts.L <= counts.R ? 'L' : 'R';
+      counts[item.side]++;
     } else {
-      side = counts.L <= counts.R ? 'L' : 'R';
+      midlinePool.push(item);
     }
-    counts[side]++;
-    item.side = side;
+  });
 
+  // Pour les muscles médians à une seule composante : attribuer par X croissant
+  // (les plus à gauche -> 'L', les plus à droite -> 'R') afin d'éviter tout croisement entre L et R
+  midlinePool.sort((a, b) => a.comps[0].cx - b.comps[0].cx);
+  const totalWithMid = counts.L + counts.R + midlinePool.length;
+  const targetLeft = Math.ceil(totalWithMid / 2);
+  midlinePool.forEach((item, idx) => {
+    const needLeft = Math.max(0, targetLeft - counts.L);
+    item.side = idx < needLeft ? 'L' : 'R';
+    counts[item.side]++;
+  });
+
+  items.forEach(item => {
     let targetSide = item.side;
     if (!isProfileView) {
       if (item.entry.side === 'L') {
@@ -3245,11 +3289,14 @@ function planLabels(view, selected, forced, yMin, yMax, size, gap) {
     return rankDiff !== 0 ? rankDiff : (a.ax - b.ax);
   });
 
-  ['L', 'R'].forEach(side => {
+  const r1 = v => Math.round(v * 10) / 10;
+
+  const relaxAndUntangleSide = (side, adjustAnchors = true) => {
     const group = items.filter(i => i.side === side);
     if (!group.length) return;
 
     group.sort((a, b) => a.ay - b.ay);
+    group.forEach(it => { it.y = it.ay; });
 
     // Déroulement vers le bas avec espacement minimal garanti
     for (let i = 1; i < group.length; i++) {
@@ -3279,25 +3326,34 @@ function planLabels(view, selected, forced, yMin, yMax, size, gap) {
     }
 
     // Ajustement de l'ancre le long du muscle en préservant scrupuleusement la monotonie verticale
-    group.forEach((g, idx) => {
-      const minAy = idx > 0 ? group[idx - 1].ay : yMin;
-      const maxAy = idx < group.length - 1 ? group[idx + 1].ay : yMax;
-      const validRows = g.comp.rows.filter(r => r[0] >= minAy && r[0] <= maxAy);
-      if (validRows.length) {
-        const best = nearestRow(validRows, g.y);
-        g.ax = best[1];
-        g.ay = best[0];
-      }
+    if (adjustAnchors) {
+      group.forEach((g, idx) => {
+        const minAy = idx > 0 ? group[idx - 1].ay : yMin;
+        const maxAy = idx < group.length - 1 ? group[idx + 1].ay : yMax;
+        const validRows = g.comp.rows.filter(r => r[0] >= minAy && r[0] <= maxAy);
+        if (validRows.length) {
+          const best = nearestRow(validRows, g.y);
+          g.ax = r1(best[1]);
+          g.ay = r1(best[0]);
+        } else {
+          g.ax = r1(g.ax);
+          g.ay = r1(g.ay);
+        }
+      });
+    }
+    group.forEach(g => {
+      g.ax = r1(g.ax);
+      g.ay = r1(g.ay);
+      g.y = r1(g.y);
     });
 
-    // Décroisement planaire géométrique (2-opt planar untangling)
-    // Élimine rigoureusement tout croisement entre muscles médiaux et latéraux (bras/mains/tronc)
-    const edge = side === 'L' ? bx0 - 2 : bx1 + 2;
+    // Décroisement planaire géométrique (2-opt planar untangling) sur coordonnées arrondies exactes
+    const edge = r1(side === 'L' ? bx0 - 2 : bx1 + 2);
     const isLeft = side === 'L';
     const flatLen = 8;
 
     const getLeaderPts = (item) => {
-      const cornerX = isLeft ? Math.min(item.ax - 2, edge + flatLen) : Math.max(item.ax + 2, edge - flatLen);
+      const cornerX = r1(isLeft ? Math.min(item.ax - 2, edge + flatLen) : Math.max(item.ax + 2, edge - flatLen));
       if (Math.abs(item.ay - item.y) > 1.0) {
         return [[edge, item.y], [cornerX, item.y], [item.ax, item.ay]];
       } else {
@@ -3305,40 +3361,89 @@ function planLabels(view, selected, forced, yMin, yMax, size, gap) {
       }
     };
 
-    const ccw = (A, B, C) => (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0]);
-    const intersect = (p1, p2, q1, q2) => (
-      ccw(p1, q1, q2) !== ccw(p2, q1, q2) && ccw(p1, p2, q1) !== ccw(p1, p2, q2)
-    );
-    const linesCross = (pts1, pts2) => {
-      for (let i = 0; i < pts1.length - 1; i++) {
-        for (let j = 0; j < pts2.length - 1; j++) {
-          if (intersect(pts1[i], pts1[i + 1], pts2[j], pts2[j + 1])) return true;
-        }
-      }
-      return false;
-    };
+    untangleLeaderGroup(group, getLeaderPts, 'y');
+  };
 
-    let changed = true;
-    let passes = 0;
-    while (changed && passes < 40) {
-      changed = false;
-      passes++;
-      for (let i = 0; i < group.length; i++) {
-        for (let j = i + 1; j < group.length; j++) {
-          if (linesCross(getLeaderPts(group[i]), getLeaderPts(group[j]))) {
-            const tmpY = group[i].y;
-            group[i].y = group[j].y;
-            group[j].y = tmpY;
-            group.sort((a, b) => a.y - b.y);
-            changed = true;
+  ['L', 'R'].forEach(s => relaxAndUntangleSide(s, true));
+
+  // Vérification inter-côtés (si un ancrage gauche/droite traverse un ancrage opposé)
+  if (!forced) {
+    const ptsFor = (item) => {
+      const isL = item.side === 'L';
+      const edge = r1(isL ? bx0 - 2 : bx1 + 2);
+      const cornerX = r1(isL ? Math.min(item.ax - 2, edge + 8) : Math.max(item.ax + 2, edge - 8));
+      return Math.abs(item.ay - item.y) > 1.0
+        ? [[edge, item.y], [cornerX, item.y], [item.ax, item.ay]]
+        : [[edge, item.y], [item.ax, item.ay]];
+    };
+    const flipped = new Set();
+    for (let pass = 0; pass < 30; pass++) {
+      const leftG = items.filter(i => i.side === 'L');
+      const rightG = items.filter(i => i.side === 'R');
+      let found = false;
+      for (const lItem of leftG) {
+        for (const rItem of rightG) {
+          if (linesCross2D(ptsFor(lItem), ptsFor(rItem))) {
+            // Préférer basculer l'item le plus déporté du mauvais côté (et non déjà basculé)
+            let moveLeftToRight = (lItem.ax - centerX) > (centerX - rItem.ax);
+            if (flipped.has(lItem) && !flipped.has(rItem)) moveLeftToRight = false;
+            else if (flipped.has(rItem) && !flipped.has(lItem)) moveLeftToRight = true;
+            const target = moveLeftToRight ? lItem : rItem;
+            flipped.add(target);
+            target.side = target.side === 'L' ? 'R' : 'L';
+            const altC = target.comps.filter(c => c.side === target.side);
+            if (altC.length) {
+              target.comp = altC.reduce((a, b) => (b.y1 - b.y0 > a.y1 - a.y0 ? b : a));
+              const midR = target.comp.rows[Math.floor(target.comp.rows.length / 2)];
+              target.ax = r1(midR[1]);
+              target.ay = r1(midR[0]);
+            }
+            found = true;
             break;
           }
         }
-        if (changed) break;
+        if (found) break;
+      }
+      if (!found) break;
+      ['L', 'R'].forEach(s => relaxAndUntangleSide(s, false));
+    }
+  }
+  return items;
+}
+
+function linesCross2D(pts1, pts2) {
+  const ccw = (A, B, C) => (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0]);
+  const intersect = (p1, p2, q1, q2) => (
+    ccw(p1, q1, q2) !== ccw(p2, q1, q2) && ccw(p1, p2, q1) !== ccw(p1, p2, q2)
+  );
+  for (let i = 0; i < pts1.length - 1; i++) {
+    for (let j = 0; j < pts2.length - 1; j++) {
+      if (intersect(pts1[i], pts1[i + 1], pts2[j], pts2[j + 1])) return true;
+    }
+  }
+  return false;
+}
+
+function untangleLeaderGroup(group, getPts, yKey = 'y') {
+  if (group.length < 2) return;
+  let changed = true;
+  let passes = 0;
+  const maxPasses = Math.max(80, group.length * group.length);
+  while (changed && passes < maxPasses) {
+    changed = false;
+    passes++;
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        if (linesCross2D(getPts(group[i]), getPts(group[j]))) {
+          const tmp = group[i][yKey];
+          group[i][yKey] = group[j][yKey];
+          group[j][yKey] = tmp;
+          changed = true;
+        }
       }
     }
-  });
-  return items;
+  }
+  group.sort((a, b) => a[yKey] - b[yKey]);
 }
 
 function labelText(entry, n, lang = state.lang) {
@@ -5241,7 +5346,10 @@ function set3DCameraAngles(azDeg, elDeg) {
     controls.target.y + dist * Math.sin(el),
     controls.target.z + dist * cosEl * Math.cos(az)
   );
+  const wasDamping = controls.enableDamping;
+  controls.enableDamping = false;
   controls.update();
+  controls.enableDamping = wasDamping;
   needs3dFrames = Math.max(needs3dFrames, 3);
 }
 
@@ -5594,42 +5702,50 @@ function render3DAnnotations() {
     return;
   }
 
-  // Tri de haut en bas pour une numérotation 1..N logique
-  rawItems.sort((a, b) => a.sy - b.sy);
-  const numMap = new Map();
-  let seq = 1;
+  const bodyMidX = rawItems.length ? (minBodyX + maxBodyX) * 0.5 : w * 0.5;
+  const splitX = Math.max(w * 0.25, Math.min(w * 0.75, bodyMidX));
+
   rawItems.forEach(it => {
-    if (!numMap.has(it.id)) numMap.set(it.id, seq++);
-    it.n = numMap.get(it.id);
     const mObj = MUSCLES.get(it.id) || ATLAS.muscles.find(x => x.id === it.id);
-    const baseName = mObj ? muscleName(mObj, state.lang) : it.id;
-    const sideTag = (isAsym && it.side) ? ` (${state.lang === 'en' ? it.side : (it.side === 'L' ? 'G' : 'D')})` : '';
-    const valTag = (it.entry.value !== null && it.entry.value !== undefined) ? ` (${it.entry.value}%)` : '';
-    if (state.labels === 'numbers') it.text = `${it.n}${valTag}`;
-    else if (state.labels === 'names') it.text = `${baseName}${sideTag}${valTag}`;
-    else it.text = `${it.n}. ${baseName}${sideTag}${valTag}`;
-    it.col = it.sx < w * 0.5 ? 'L' : 'R';
+    it.baseName = mObj ? muscleName(mObj, state.lang) : it.id;
+    it.sideTag = (isAsym && it.side) ? ` (${state.lang === 'en' ? it.side : (it.side === 'L' ? 'G' : 'D')})` : '';
+    it.valTag = (it.entry.value !== null && it.entry.value !== undefined) ? ` (${it.entry.value}%)` : '';
+    it.col = it.sx < splitX ? 'L' : 'R';
   });
-  activeMuscleNumbers = numMap;
 
   const t = theme();
   const isDark = state.bg === 'black';
   const textCol = t.textColor;
   const lineCol = t.textColor;
   const countMax = Math.max(rawItems.filter(i => i.col === 'L').length, rawItems.filter(i => i.col === 'R').length);
-  let fontSize = countMax > 20 ? 10 : (countMax > 12 ? 11 : 12);
-  const gap = Math.max(fontSize + 4, Math.min(20, (h - 56) / Math.max(1, countMax)));
+  let fontSize = countMax > 24 ? 9.5 : (countMax > 18 ? 10.5 : (countMax > 12 ? 11 : 12));
+  const gap = Math.max(fontSize + 3.2, Math.min(20, (h - 68) / Math.max(1, countMax)));
   const padX = 12;
-  const maxWL = Math.max(24, ...rawItems.filter(i => i.col === 'L').map(i => textWidth(i.text, fontSize)));
-  const maxWR = Math.max(24, ...rawItems.filter(i => i.col === 'R').map(i => textWidth(i.text, fontSize)));
-  const labelColL = Math.min(w * 0.42, Math.max(padX + maxWL + 8, Math.min(w * 0.34, minBodyX - 20)));
-  const labelColR = Math.max(w * 0.58, Math.min(w - padX - maxWR - 8, Math.max(w * 0.66, maxBodyX + 20)));
 
-  let out = '';
+  const formatLabel = (it, n) => {
+    if (state.labels === 'numbers') return `${n}${it.valTag}`;
+    if (state.labels === 'names') return `${it.baseName}${it.sideTag}${it.valTag}`;
+    return `${n}. ${it.baseName}${it.sideTag}${it.valTag}`;
+  };
+
+  // Estimation de largeur pour le placement des colonnes (en laissant la silhouette libre)
+  const tmpItems = [...rawItems].sort((a, b) => a.sy - b.sy);
+  tmpItems.forEach((it, idx) => { it.tmpText = formatLabel(it, idx + 1); });
+  const maxWL = Math.max(24, ...rawItems.filter(i => i.col === 'L').map(i => textWidth(i.tmpText, fontSize)));
+  const maxWR = Math.max(24, ...rawItems.filter(i => i.col === 'R').map(i => textWidth(i.tmpText, fontSize)));
+  const r1 = v => Math.round(v * 10) / 10;
+  const labelColL = r1(Math.min(w * 0.42, Math.max(padX + maxWL + 8, Math.min(w * 0.34, minBodyX - 20))));
+  const labelColR = r1(Math.max(w * 0.58, Math.min(w - padX - maxWR - 8, Math.max(w * 0.66, maxBodyX + 20))));
+
+  const placedGroups = [];
   ['L', 'R'].forEach(col => {
     const grp = rawItems.filter(i => i.col === col).sort((a, b) => a.sy - b.sy);
     if (!grp.length) return;
-    grp.forEach(it => { it.ly = it.sy; });
+    grp.forEach(it => {
+      it.sx = r1(it.sx);
+      it.sy = r1(it.sy);
+      it.ly = it.sy;
+    });
     for (let i = 1; i < grp.length; i++) {
       if (grp[i].ly < grp[i - 1].ly + gap) grp[i].ly = grp[i - 1].ly + gap;
     }
@@ -5646,14 +5762,37 @@ function render3DAnnotations() {
         if (grp[i].ly < grp[i - 1].ly + gap) grp[i].ly = grp[i - 1].ly + gap;
       }
     }
+    grp.forEach(it => { it.ly = r1(it.ly); });
 
-    const tx = col === 'L' ? labelColL : labelColR;
-    const anchor = col === 'L' ? 'end' : 'start';
-    const elbow = col === 'L' ? tx + 10 : tx - 10;
-    const textX = col === 'L' ? tx - 5 : tx + 5;
+    const isLeft = col === 'L';
+    const tx = isLeft ? labelColL : labelColR;
+    const getPts3D = (it) => {
+      const elbow = r1(isLeft ? Math.min(it.sx - 2, tx + 10) : Math.max(it.sx + 2, tx - 10));
+      return [[it.sx, it.sy], [elbow, it.ly], [tx, it.ly]];
+    };
 
-    const dotR = Math.min(2.4, Math.max(1.6, fontSize * 0.17));
+    // Décroisement planaire automatique sur coordonnées exactes : garantit 0 croisement
+    untangleLeaderGroup(grp, getPts3D, 'ly');
+    placedGroups.push({ col, grp, tx, isLeft });
+  });
+
+  // Numérotation séquentielle cohérente de haut en bas après décroisement
+  const numMap = new Map();
+  let seq = 1;
+  rawItems.sort((a, b) => a.ly - b.ly).forEach(it => {
+    if (!numMap.has(it.id)) numMap.set(it.id, seq++);
+    it.n = numMap.get(it.id);
+    it.text = formatLabel(it, it.n);
+  });
+  activeMuscleNumbers = numMap;
+
+  let out = '';
+  const dotR = Math.min(2.4, Math.max(1.5, fontSize * 0.17));
+  placedGroups.forEach(({ grp, tx, isLeft }) => {
+    const anchor = isLeft ? 'end' : 'start';
+    const textX = isLeft ? tx - 5 : tx + 5;
     grp.forEach(it => {
+      const elbow = isLeft ? Math.min(it.sx - 2, tx + 10) : Math.max(it.sx + 2, tx - 10);
       const pts = `${it.sx.toFixed(1)},${it.sy.toFixed(1)} ${elbow.toFixed(1)},${it.ly.toFixed(1)} ${tx.toFixed(1)},${it.ly.toFixed(1)}`;
       out += `<polyline points="${pts}" fill="none" stroke="${lineCol}" stroke-width="0.95" stroke-linejoin="round"/>`;
       out += `<circle cx="${it.sx.toFixed(1)}" cy="${it.sy.toFixed(1)}" r="${dotR.toFixed(1)}" fill="${textCol}"/>`;
