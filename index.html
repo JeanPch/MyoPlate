@@ -4061,7 +4061,6 @@ $('png').addEventListener('click', async () => {
     }
     ctx.drawImage(image, 0, 0, outW, outH);
     URL.revokeObjectURL(url);
-    const dict = I18N[state.lang] || I18N.fr;
     canvas.toBlob(async blob => {
       const tagged = await addPngMetadata(blob, {
         Title: 'MyoPlate - Interactive sEMG Mapping & Figure Builder',
