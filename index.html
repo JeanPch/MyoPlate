@@ -3614,6 +3614,7 @@ function toggleMuscleSide(id, targetSide, specificValue = null) {
 // Écouteurs d'options
 document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
   const key = b.parentElement.dataset.key;
+  if (!key) return;
   const val = b.dataset.value;
   state[key] = val;
   if (key === 'view' || key === 'zone') {
