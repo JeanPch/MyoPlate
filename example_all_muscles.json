@@ -1,7 +1,7 @@
 {
-  "description": "MyoPlate reference dictionary and full sample dataset covering all 69 anatomical muscles.",
+  "description": "MyoPlate reference dictionary and full sample dataset covering all 71 anatomical muscles.",
   "unit": "% MVC",
-  "total_muscles": 69,
+  "total_muscles": 71,
   "measures": [
     {
       "muscle": "frontalis",
@@ -85,11 +85,29 @@
       "layer": "intermediate"
     },
     {
-      "muscle": "pectoralis-major",
+      "muscle": "pectoralis-major-clavicular",
+      "mvc": 80.0,
+      "abbr": "PMC",
+      "name_en": "Pectoralis major (clavicular head)",
+      "name_fr": "Grand pectoral (chef claviculaire)",
+      "section": "Tronc",
+      "layer": "superficial"
+    },
+    {
+      "muscle": "pectoralis-major-sternocostal",
       "mvc": 85.0,
-      "abbr": "PM",
-      "name_en": "Pectoralis major",
-      "name_fr": "Grand pectoral",
+      "abbr": "PMS",
+      "name_en": "Pectoralis major (sternocostal head)",
+      "name_fr": "Grand pectoral (chef sterno-costal)",
+      "section": "Tronc",
+      "layer": "superficial"
+    },
+    {
+      "muscle": "pectoralis-major-abdominal",
+      "mvc": 75.0,
+      "abbr": "PMA",
+      "name_en": "Pectoralis major (abdominal head)",
+      "name_fr": "Grand pectoral (chef abdominal)",
       "section": "Tronc",
       "layer": "superficial"
     },
