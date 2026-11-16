@@ -351,6 +351,9 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 2px;
   }
+  .seg[data-key="view"] button[data-value="3d"] {
+    grid-column: 1 / -1;
+  }
 
   /* Vue 3D interactive */
   #stage3d {
@@ -1458,6 +1461,7 @@
         <button data-value="both" data-i18n="both">Duo</button>
         <button data-value="front" data-i18n="front">Face</button>
         <button data-value="back" data-i18n="back">Dos</button>
+        <button data-value="profiles" data-i18n="profiles">2 Profils</button>
         <button data-value="left" data-i18n="left">Profil G</button>
         <button data-value="right" data-i18n="right">Profil D</button>
         <button data-value="3d" data-i18n="view3d">3D</button>
@@ -2031,7 +2035,9 @@ const I18N = {
     metaBack: 'dos',
     metaLeft: 'profil gauche',
     metaRight: 'profil droit',
+    metaProfiles: 'profils gauche et droit',
     meta3d: '3D interactive',
+    profiles: '2 Profils',
     left: 'Profil G',
     right: 'Profil D',
     view3d: '3D',
@@ -2171,7 +2177,9 @@ const I18N = {
     metaBack: 'posterior',
     metaLeft: 'left profile',
     metaRight: 'right profile',
+    metaProfiles: 'left and right profiles',
     meta3d: 'interactive 3D',
+    profiles: '2 Profiles',
     left: 'Left',
     right: 'Right',
     view3d: '3D',
@@ -2639,19 +2647,24 @@ function buildSVG(interactive) {
     }
   });
   const heat = selected.some(e => e.value !== null);
-  const views = state.view === 'both' ? ['front', 'back'] : [state.view === '3d' ? 'front' : state.view];
+  const isDuoBoth = state.view === 'both';
+  const isDuoProfiles = state.view === 'profiles';
+  const isDuo = isDuoBoth || isDuoProfiles;
+  const views = isDuoBoth ? ['front', 'back'] : (isDuoProfiles ? ['left', 'right'] : [state.view === '3d' ? 'front' : state.view]);
   const [yMin, yMax] = zoneRange(state.zone);
   const bodyH = yMax - yMin;
   const showLabels = state.labels !== 'none';
-  const refView = state.view === 'both' ? 'front' : (ATLAS.views[state.view] ? state.view : 'front');
+  const refView = isDuoBoth ? 'front' : (isDuoProfiles ? 'left' : (ATLAS.views[state.view] ? state.view : 'front'));
   const [bx0, , bx1] = ATLAS.views[refView].bbox;
 
   // Calcul du nombre maximal de candidats par panneau pour déterminer dynamiquement taille et interligne
   const frontCount = selectedMuscles.filter(e => e.muscle.views.front).length;
   const backCount = selectedMuscles.filter(e => e.muscle.views.back).length;
-  const maxCandidates = state.view === 'both'
+  const leftCount = selectedMuscles.filter(e => e.muscle.views.left).length;
+  const rightCount = selectedMuscles.filter(e => e.muscle.views.right).length;
+  const maxCandidates = isDuoBoth
     ? Math.max(frontCount, backCount)
-    : selectedMuscles.filter(e => e.muscle.views[refView]).length;
+    : (isDuoProfiles ? Math.max(leftCount, rightCount) : selectedMuscles.filter(e => e.muscle.views[refView]).length);
 
   // Auto-scaling dynamique de la police et de l'interligne selon la densité de muscles
   let size = 15;
@@ -2673,10 +2686,11 @@ function buildSVG(interactive) {
   const assignedMuscleNumbers = new Map();
 
   const panels = views.map(view => {
-    const forced = state.view === 'both' ? (view === 'front' ? 'L' : 'R') : null;
+    const forced = isDuo ? ((view === 'front' || view === 'left') ? 'L' : 'R') : null;
     
-    // En vue duo (Face + Dos), ne pas répéter sur le dos un muscle déjà étiqueté sur la face
-    const candidates = (state.view === 'both' && view === 'back')
+    // En vue duo, ne pas répéter sur le second panneau un muscle déjà étiqueté sur le premier
+    const secondView = isDuoBoth ? 'back' : (isDuoProfiles ? 'right' : null);
+    const candidates = (isDuo && view === secondView)
       ? selectedMuscles.filter(e => !assignedMuscleNumbers.has(e.id))
       : selectedMuscles;
       
@@ -2726,11 +2740,12 @@ function buildSVG(interactive) {
   const centerGap = 32;
 
   let contentW;
-  if (state.view === 'both') {
+  if (isDuo) {
     contentW = pad + labelMargin + bodyW + centerGap + bodyW + labelMargin + pad;
   } else {
     contentW = pad + labelMargin + bodyW + labelMargin + pad;
   }
+  const rawContentW = contentW;
   const minFigureW = isHeat ? 580 : 540;
   if (contentW < minFigureW) {
     contentW = minFigureW;
@@ -2759,18 +2774,21 @@ function buildSVG(interactive) {
     }
   }
 
-  const padX = (targetW - contentW) / 2 + pad;
+  const padX = (targetW - rawContentW) / 2 + pad;
   const padY = (targetH - contentH) / 2 + TOP_MARGIN;
 
   let panelsLayout;
-  if (state.view === 'both') {
-    const xFront = padX + labelMargin;
-    const xBack = xFront + bodyW + centerGap;
+  if (isDuo) {
+    const v1 = views[0], v2 = views[1];
+    const [b1x0] = ATLAS.views[v1].bbox;
+    const [b2x0] = ATLAS.views[v2].bbox;
+    const x1 = padX + labelMargin;
+    const x2 = x1 + bodyW + centerGap;
     const dy = padY - yMin;
 
     panelsLayout = {
-      front: { px: xFront - bx0, dy: dy },
-      back: { px: xBack - bx0, dy: dy },
+      [v1]: { px: x1 - b1x0, dy: dy },
+      [v2]: { px: x2 - b2x0, dy: dy },
       feetY: padY + bodyH
     };
   } else {
@@ -3018,7 +3036,7 @@ function buildSVG(interactive) {
     body += g;
   });
 
-  const metaMap = { both: dict.metaDuo, front: dict.metaFront, back: dict.metaBack, left: dict.metaLeft, right: dict.metaRight, '3d': dict.meta3d };
+  const metaMap = { both: dict.metaDuo, profiles: dict.metaProfiles, front: dict.metaFront, back: dict.metaBack, left: dict.metaLeft, right: dict.metaRight, '3d': dict.meta3d };
   const label = metaMap[state.view] || dict.metaFront;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f1(targetW)} ${f1(targetH)}" width="100%" height="100%" font-family='${FONT}'>` +
     `<title>MyoPlate (${label})</title>` +
@@ -3953,8 +3971,8 @@ function getExportFilename(extension) {
 
   // 1. Vue : duo / face / dos / profil-g / profil-d / 3d
   const viewMap = isFr
-    ? { both: 'duo', front: 'face', back: 'dos', left: 'profil-g', right: 'profil-d', '3d': '3d' }
-    : { both: 'duo', front: 'front', back: 'back', left: 'left', right: 'right', '3d': '3d' };
+    ? { both: 'duo', profiles: 'duo-profils', front: 'face', back: 'dos', left: 'profil-g', right: 'profil-d', '3d': '3d' }
+    : { both: 'duo', profiles: 'profiles', front: 'front', back: 'back', left: 'left', right: 'right', '3d': '3d' };
   const viewStr = viewMap[state.view] || state.view;
 
   // 2. Couleur de fond simplifiée directe : white / black / transparent
