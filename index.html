@@ -4287,6 +4287,7 @@ let ctx3d = null; // { renderer, scene, camera, controls, muscleMeshes: [], skin
 let last2dView = (state.view && state.view !== '3d') ? state.view : 'both';
 let last3dZone = null;
 let was3dMode = false;
+let needs3dFrames = 4;
 
 async function decompress3DBundle(b64) {
   const binStr = atob(b64);
@@ -4335,6 +4336,7 @@ function set3DCameraAngles(azDeg, elDeg) {
     controls.target.z + dist * cosEl * Math.cos(az)
   );
   controls.update();
+  needs3dFrames = Math.max(needs3dFrames, 3);
 }
 
 function syncSlidersFromCamera() {
@@ -4409,6 +4411,7 @@ function update3DColors() {
     ctx3d.skinMesh.material.color.set((isDark || isDarkBody) ? '#94a3b8' : '#e2e8f0');
     ctx3d.skinMesh.material.needsUpdate = true;
   }
+  needs3dFrames = Math.max(needs3dFrames, 3);
 }
 
 async function init3D() {
@@ -4548,7 +4551,12 @@ async function init3D() {
       renderer.domElement.style.cursor = 'grab';
     });
 
-    controls.addEventListener('change', syncSlidersFromCamera);
+    controls.addEventListener('change', () => {
+      needs3dFrames = Math.max(needs3dFrames, 3);
+      syncSlidersFromCamera();
+    });
+    controls.addEventListener('start', () => { needs3dFrames = Math.max(needs3dFrames, 30); });
+    controls.addEventListener('end', () => { needs3dFrames = Math.max(needs3dFrames, 30); });
 
     ctx3d = { renderer, scene, camera, controls, muscleMeshes, skinMesh, raycaster };
 
@@ -4559,14 +4567,18 @@ async function init3D() {
       ctx3d.camera.aspect = cw / ch;
       ctx3d.camera.updateProjectionMatrix();
       ctx3d.renderer.setSize(cw, ch);
+      needs3dFrames = Math.max(needs3dFrames, 3);
     });
     ro.observe(container);
 
     function animate() {
       requestAnimationFrame(animate);
       if (state.view === '3d' && ctx3d) {
-        ctx3d.controls.update();
-        ctx3d.renderer.render(ctx3d.scene, ctx3d.camera);
+        const moved = ctx3d.controls.update();
+        if (moved || needs3dFrames > 0) {
+          if (needs3dFrames > 0) needs3dFrames--;
+          ctx3d.renderer.render(ctx3d.scene, ctx3d.camera);
+        }
       }
     }
     animate();
