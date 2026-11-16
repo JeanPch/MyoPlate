@@ -366,6 +366,14 @@
   }
   #stage3d:active { cursor: grabbing; }
   #stage3d canvas { display: block; width: 100%; height: 100%; outline: none; }
+  #overlay3d {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 6;
+  }
   /* Contrôles 3D intégrés au panneau latéral gauche */
   .controls-3d-presets {
     display: grid;
@@ -1597,7 +1605,7 @@
         <button data-value="full" data-i18n="skelFull" title="Squelette 3D complet bien visible">Complet</button>
       </div>
     </div>
-    <div class="ctrl-item only-2d">
+    <div class="ctrl-item">
       <span class="ctrl-label" data-i18n="labels">Repères</span>
       <div class="seg" data-key="labels">
         <button data-value="numbers" data-i18n="numbers">N°</button>
@@ -1654,6 +1662,7 @@
       <div id="stage"></div>
     </div>
     <div id="stage3d">
+      <svg id="overlay3d" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="loading3d" class="loading-3d" style="display:none" data-i18n="loading3d">Chargement de la vue 3D…</div>
     </div>
     <div id="tooltip"></div>
@@ -4528,7 +4537,15 @@ async function init3D() {
           side: THREE.DoubleSide
         });
         const mesh = new THREE.Mesh(geom, mat);
-        mesh.userData = { id: sm.id, side: sm.side };
+        // Calcul du centroïde 3D pour l'ancrage des annotations
+        let ax = 0, ay = 0, az = 0;
+        const nVerts = sm.pos.length / 3 || 1;
+        for (let i = 0; i < sm.pos.length; i += 3) {
+          ax += sm.pos[i];
+          ay += sm.pos[i + 1];
+          az += sm.pos[i + 2];
+        }
+        mesh.userData = { id: sm.id, side: sm.side, anchor: new THREE.Vector3(ax / nVerts, ay / nVerts, az / nVerts) };
         muscleMeshes.push(mesh);
         scene.add(mesh);
       }
@@ -4614,18 +4631,169 @@ async function init3D() {
         if (moved || needs3dFrames > 0) {
           if (needs3dFrames > 0) needs3dFrames--;
           ctx3d.renderer.render(ctx3d.scene, ctx3d.camera);
+          render3DAnnotations();
         }
       }
     }
     animate();
     syncSlidersFromCamera();
     update3DColors();
+    render3DAnnotations();
   } catch (err) {
     console.error('Erreur initialisation 3D:', err);
   } finally {
     if (loaderEl) loaderEl.style.display = 'none';
   }
   return ctx3d;
+}
+
+function render3DAnnotations() {
+  const svgEl = $('overlay3d');
+  if (!svgEl) return;
+  if (!ctx3d || state.view !== '3d' || state.labels === 'none') {
+    svgEl.innerHTML = '';
+    return;
+  }
+  const container = $('stage3d');
+  const w = container ? (container.clientWidth || 600) : 600;
+  const h = container ? (container.clientHeight || 600) : 600;
+  svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+  const { entries } = parseList(state.text);
+  const isAsym = state.symmetry === 'asymmetric';
+  const entryMap = new Map();
+  entries.forEach(e => {
+    const key = isAsym ? `${e.id}:${e.side || 'L'}` : e.id;
+    entryMap.set(key, e);
+  });
+  if (!entryMap.size) {
+    svgEl.innerHTML = '';
+    return;
+  }
+
+  ctx3d.camera.updateMatrixWorld();
+  const projectedByMuscle = new Map();
+  let minBodyX = w, maxBodyX = 0;
+
+  for (const mesh of ctx3d.muscleMeshes) {
+    const { id, side, anchor } = mesh.userData;
+    if (!anchor) continue;
+    const v = anchor.clone().project(ctx3d.camera);
+    if (v.z < -1 || v.z > 1) continue;
+    const sx = (v.x * 0.5 + 0.5) * w;
+    const sy = (-v.y * 0.5 + 0.5) * h;
+    if (sx < 8 || sx > w - 8 || sy < 12 || sy > h - 28) continue;
+    if (sx < minBodyX) minBodyX = sx;
+    if (sx > maxBodyX) maxBodyX = sx;
+
+    const entry = isAsym ? entryMap.get(`${id}:${side}`) : entryMap.get(id);
+    if (!entry) continue;
+
+    const key = isAsym ? `${id}:${side}` : id;
+    if (!projectedByMuscle.has(key)) projectedByMuscle.set(key, []);
+    projectedByMuscle.get(key).push({ id, side, entry, sx, sy, z: v.z });
+  }
+
+  const rawItems = [];
+  projectedByMuscle.forEach(list => {
+    if (list.length === 1) {
+      rawItems.push(list[0]);
+    } else {
+      // Mode symétrique : choisir la face la plus proche de la caméra, ou celle du côté gauche/droite correspondant
+      list.sort((a, b) => a.z - b.z);
+      if (Math.abs(list[0].z - list[1].z) < 0.035) {
+        const leftCount = rawItems.filter(it => it.sx < w * 0.5).length;
+        const rightCount = rawItems.length - leftCount;
+        const preferLeft = leftCount <= rightCount;
+        const pick = list.find(it => preferLeft ? (it.sx < w * 0.5) : (it.sx >= w * 0.5)) || list[0];
+        rawItems.push(pick);
+      } else {
+        rawItems.push(list[0]);
+      }
+    }
+  });
+
+  if (!rawItems.length) {
+    svgEl.innerHTML = '';
+    return;
+  }
+
+  // Tri de haut en bas pour une numérotation 1..N logique
+  rawItems.sort((a, b) => a.sy - b.sy);
+  const numMap = new Map();
+  let seq = 1;
+  rawItems.forEach(it => {
+    if (!numMap.has(it.id)) numMap.set(it.id, seq++);
+    it.n = numMap.get(it.id);
+    const mObj = MUSCLES.get(it.id) || ATLAS.muscles.find(x => x.id === it.id);
+    const baseName = mObj ? muscleName(mObj, state.lang) : it.id;
+    const sideTag = (isAsym && it.side) ? ` (${state.lang === 'en' ? it.side : (it.side === 'L' ? 'G' : 'D')})` : '';
+    const valTag = (it.entry.value !== null && it.entry.value !== undefined) ? ` (${it.entry.value}%)` : '';
+    if (state.labels === 'numbers') it.text = `${it.n}${valTag}`;
+    else if (state.labels === 'names') it.text = `${baseName}${sideTag}${valTag}`;
+    else it.text = `${it.n}. ${baseName}${sideTag}${valTag}`;
+    it.col = it.sx < w * 0.5 ? 'L' : 'R';
+  });
+  activeMuscleNumbers = numMap;
+
+  const isDark = state.bg === 'black';
+  const textCol = isDark ? '#f1f5f9' : '#0f172a';
+  const lineCol = isDark ? 'rgba(226, 232, 240, 0.72)' : 'rgba(51, 65, 85, 0.68)';
+  const haloCol = isDark ? '#090d16' : '#ffffff';
+  const countMax = Math.max(rawItems.filter(i => i.col === 'L').length, rawItems.filter(i => i.col === 'R').length);
+  let fontSize = countMax > 20 ? 10 : (countMax > 12 ? 11 : 12);
+  const gap = Math.max(fontSize + 4, Math.min(20, (h - 56) / Math.max(1, countMax)));
+  const padX = 12;
+  const maxWL = Math.max(24, ...rawItems.filter(i => i.col === 'L').map(i => textWidth(i.text, fontSize)));
+  const maxWR = Math.max(24, ...rawItems.filter(i => i.col === 'R').map(i => textWidth(i.text, fontSize)));
+  const labelColL = Math.min(w * 0.42, Math.max(padX + maxWL + 8, Math.min(w * 0.34, minBodyX - 20)));
+  const labelColR = Math.max(w * 0.58, Math.min(w - padX - maxWR - 8, Math.max(w * 0.66, maxBodyX + 20)));
+
+  let out = '';
+  ['L', 'R'].forEach(col => {
+    const grp = rawItems.filter(i => i.col === col).sort((a, b) => a.sy - b.sy);
+    if (!grp.length) return;
+    grp.forEach(it => { it.ly = it.sy; });
+    for (let i = 1; i < grp.length; i++) {
+      if (grp[i].ly < grp[i - 1].ly + gap) grp[i].ly = grp[i - 1].ly + gap;
+    }
+    const maxY = h - 46;
+    if (grp[grp.length - 1].ly > maxY) {
+      grp[grp.length - 1].ly = maxY;
+      for (let i = grp.length - 2; i >= 0; i--) {
+        if (grp[i].ly > grp[i + 1].ly - gap) grp[i].ly = grp[i + 1].ly - gap;
+      }
+    }
+    if (grp[0].ly < 18) {
+      grp[0].ly = 18;
+      for (let i = 1; i < grp.length; i++) {
+        if (grp[i].ly < grp[i - 1].ly + gap) grp[i].ly = grp[i - 1].ly + gap;
+      }
+    }
+
+    const tx = col === 'L' ? labelColL : labelColR;
+    const anchor = col === 'L' ? 'end' : 'start';
+    const elbow = col === 'L' ? tx + 10 : tx - 10;
+    const textX = col === 'L' ? tx - 5 : tx + 5;
+
+    grp.forEach(it => {
+      const mObj = ATLAS.muscles.find(x => x.id === it.id);
+      let dotCol = (mObj && getMuscleColor(mObj)) || '#e11d48';
+      if (state.colorMode === 'uniform') dotCol = '#e11d48';
+      else if (state.colorMode === 'heat' && it.entry.value !== null) dotCol = heatColor(it.entry.value);
+      const pts = `${it.sx.toFixed(1)},${it.sy.toFixed(1)} ${elbow.toFixed(1)},${it.ly.toFixed(1)} ${tx.toFixed(1)},${it.ly.toFixed(1)}`;
+      out += `<polyline points="${pts}" fill="none" stroke="${lineCol}" stroke-width="1.15" stroke-linecap="round" stroke-linejoin="round"/>`;
+      out += `<circle cx="${it.sx.toFixed(1)}" cy="${it.sy.toFixed(1)}" r="3.2" fill="${dotCol}" stroke="${haloCol}" stroke-width="1.3"/>`;
+      out += `<text x="${textX.toFixed(1)}" y="${(it.ly + fontSize * 0.35).toFixed(1)}" text-anchor="${anchor}" font-family="Inter,system-ui,sans-serif" font-size="${fontSize}" font-weight="600" fill="${textCol}" stroke="${haloCol}" stroke-width="3" paint-order="stroke">${esc(it.text)}</text>`;
+    });
+  });
+
+  const dict = I18N[state.lang] || I18N.fr;
+  const citeCol = isDark ? '#94a3b8' : '#64748b';
+  out += `<text x="${(w / 2).toFixed(1)}" y="${(h - 20).toFixed(1)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="${citeCol}">${esc(CITE_CREDIT)}</text>`;
+  out += `<text x="${(w / 2).toFixed(1)}" y="${(h - 8).toFixed(1)}" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9.5" fill="${citeCol}">${esc(dict.imageLicense)}</text>`;
+
+  svgEl.innerHTML = out;
 }
 
 async function sync3DView(justEntered = false) {
@@ -4652,12 +4820,45 @@ async function sync3DView(justEntered = false) {
     syncSlidersFromCamera();
   }
   update3DColors();
+  render3DAnnotations();
 }
 
 async function export3DCanvasBlob() {
   if (!ctx3d) return null;
   ctx3d.renderer.render(ctx3d.scene, ctx3d.camera);
-  return new Promise(resolve => ctx3d.renderer.domElement.toBlob(resolve, 'image/png'));
+  render3DAnnotations();
+  const glCanvas = ctx3d.renderer.domElement;
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = glCanvas.width;
+  outCanvas.height = glCanvas.height;
+  const ctx = outCanvas.getContext('2d');
+  if (state.bg === 'white') {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+  } else if (state.bg === 'black') {
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+  }
+  ctx.drawImage(glCanvas, 0, 0);
+
+  const svgEl = $('overlay3d');
+  if (svgEl && svgEl.innerHTML.trim()) {
+    const svgClone = svgEl.cloneNode(true);
+    svgClone.setAttribute('width', outCanvas.width);
+    svgClone.setAttribute('height', outCanvas.height);
+    const svgStr = new XMLSerializer().serializeToString(svgClone);
+    const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const img = new Image();
+      img.src = url;
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+      ctx.drawImage(img, 0, 0, outCanvas.width, outCanvas.height);
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+  return new Promise(resolve => outCanvas.toBlob(resolve, 'image/png'));
 }
 
 // Contrôles unifiés 2D / 3D dans le panneau latéral gauche
