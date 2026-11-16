@@ -2731,8 +2731,7 @@ function buildSVG(interactive) {
   } else {
     contentW = pad + labelMargin + bodyW + labelMargin + pad;
   }
-  const isSingleProfile = (state.view === 'left' || state.view === 'right');
-  const minFigureW = isSingleProfile ? (isHeat ? 420 : 320) : (isHeat ? 580 : 540);
+  const minFigureW = isHeat ? 580 : 540;
   if (contentW < minFigureW) {
     contentW = minFigureW;
   }
@@ -4268,9 +4267,9 @@ async function decompress3DBundle(b64) {
 }
 
 function get3DZoneFraming(zone) {
-  if (zone === 'upper') return { y: 1.45, dist: 6.2 };
-  if (zone === 'lower') return { y: -1.65, dist: 6.2 };
-  return { y: -0.01, dist: 11.4 };
+  if (zone === 'upper') return { y: 1.35, dist: 6.4 };
+  if (zone === 'lower') return { y: -1.75, dist: 6.4 };
+  return { y: -0.35, dist: 12.4 };
 }
 
 function set3DCameraAngles(azDeg, elDeg) {
@@ -4323,7 +4322,8 @@ function update3DColors() {
     const entry = isAsym ? entryMap.get(`${id}:${side}`) : entryMap.get(id);
     const mat = mesh.material;
     if (entry) {
-      let colHex = entry.muscle.color || '#e11d48';
+      const mObj = ATLAS.muscles.find(x => x.id === id);
+      let colHex = (mObj && getMuscleColor(mObj)) || '#e11d48';
       if (state.colorMode === 'uniform') colHex = '#e11d48';
       else if (state.colorMode === 'heat' && entry.value !== null) colHex = heatColor(entry.value);
       mat.color.set(colHex);
