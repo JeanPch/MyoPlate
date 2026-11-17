@@ -5913,6 +5913,13 @@ async function exportTemporalMp4() {
     const isMp4 = mimeType.startsWith('video/mp4');
     const ext = isMp4 ? 'mp4' : 'webm';
     const { w, h } = getTemporalExportDims(1440, true);
+    if (state.view === '3d' && ctx3d) {
+      const c3d = $('stage3d');
+      const cw = c3d ? (c3d.clientWidth || 600) : 600;
+      const ch = c3d ? (c3d.clientHeight || 600) : 600;
+      ctx3d.renderer.setPixelRatio(w / cw);
+      ctx3d.renderer.setSize(cw, ch, false);
+    }
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
@@ -5956,6 +5963,10 @@ async function exportTemporalMp4() {
     download(blob, getExportFilename(ext));
     flashExportBtn(btn);
   } finally {
+    if (state.view === '3d' && ctx3d) {
+      ctx3d.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if (typeof sync3DView === 'function') sync3DView();
+    }
     if (labelSpan) labelSpan.textContent = origLabel;
     isExportingTemporal = false;
     applyTemporalFrame(prevIdx, false, 0, temporalEmg.times[prevIdx]);
@@ -6136,6 +6147,10 @@ async function exportTemporalGif() {
     download(new Blob([gifBytes], { type: 'image/gif' }), getExportFilename('gif'));
     flashExportBtn(btn);
   } finally {
+    if (state.view === '3d' && ctx3d) {
+      ctx3d.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if (typeof sync3DView === 'function') sync3DView();
+    }
     if (labelSpan) labelSpan.textContent = origLabel;
     isExportingTemporal = false;
     applyTemporalFrame(prevIdx, false, 0, temporalEmg.times[prevIdx]);
