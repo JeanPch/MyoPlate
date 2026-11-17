@@ -1,6 +1,6 @@
 # MyoPlate
 
-**Interactive sEMG Mapping & Figure Builder**
+**Interactive sEMG figure builder**
 
 [![Technosport amU](https://img.shields.io/badge/Technosport-amU%20%7C%20ISM-002D62?style=flat-square)](https://github.com/Technosport)
 [![Type](https://img.shields.io/badge/Type-Standalone%20Web%20App-009EE2?style=flat-square)](#)
