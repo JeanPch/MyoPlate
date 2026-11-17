@@ -5946,6 +5946,21 @@ function sync3DControlsUI(az, el) {
   });
 }
 
+function recenter3DCamera() {
+  if (!ctx3d) return;
+  const f = get3DZoneFraming(state.zone);
+  const { camera, controls } = ctx3d;
+  const dir = camera.position.clone().sub(controls.target).normalize();
+  controls.target.set(0, f.y, 0);
+  camera.position.copy(controls.target).addScaledVector(dir, f.dist);
+  const wasDamping = controls.enableDamping;
+  controls.enableDamping = false;
+  controls.update();
+  controls.enableDamping = wasDamping;
+  last3dZone = state.zone;
+  needs3dFrames = Math.max(needs3dFrames, 3);
+}
+
 function reset3DCamera(azDeg = DEFAULT_3D_AZ, elDeg = DEFAULT_3D_EL) {
   modeConfigs['3d'].az = azDeg;
   modeConfigs['3d'].el = elDeg;
@@ -6684,8 +6699,7 @@ if ($('btn3dReset')) {
 if ($('btn3dStageReset')) {
   $('btn3dStageReset').addEventListener('click', e => {
     e.stopPropagation();
-    reset3DCamera(DEFAULT_3D_AZ, DEFAULT_3D_EL);
-    save();
+    recenter3DCamera();
   });
 }
 
