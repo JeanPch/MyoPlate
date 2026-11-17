@@ -5897,6 +5897,9 @@ async function exportTemporalMp4() {
 
   try {
     const mimes = [
+      'video/mp4;codecs=avc1.640032',
+      'video/mp4;codecs=avc1.640028',
+      'video/mp4;codecs=avc1.4D4028',
       'video/mp4;codecs=avc1.42E01E',
       'video/mp4;codecs=avc1',
       'video/mp4',
@@ -5909,20 +5912,23 @@ async function exportTemporalMp4() {
 
     const isMp4 = mimeType.startsWith('video/mp4');
     const ext = isMp4 ? 'mp4' : 'webm';
-    const { w, h } = getTemporalExportDims(1080, true);
+    const { w, h } = getTemporalExportDims(1440, true);
     const canvas = document.createElement('canvas');
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const fps = 30;
+    const frameMs = 1000 / fps;
     const speed = temporalEmg.speed || 1;
     const totalDur = Math.max(0.1, (temporalEmg.duration || ((temporalEmg.nFrames - 1) / 50)) / speed);
     const totalFrames = Math.max(2, Math.round(totalDur * fps));
 
     const stream = canvas.captureStream(0);
     const track = stream.getVideoTracks()[0];
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 24000000 });
     const chunks = [];
     recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
     const stopped = new Promise(res => { recorder.onstop = res; });
@@ -5930,6 +5936,7 @@ async function exportTemporalMp4() {
     recorder.start();
     const t0 = temporalEmg.times[0];
     const rawDur = temporalEmg.duration || ((temporalEmg.nFrames - 1) / 50);
+    let nextDeadline = performance.now();
 
     for (let i = 0; i < totalFrames; i++) {
       const targetT = t0 + (i / Math.max(1, totalFrames - 1)) * rawDur;
@@ -5938,7 +5945,9 @@ async function exportTemporalMp4() {
       await drawTemporalSceneToCanvas(ctx, w, h, false);
       if (track && typeof track.requestFrame === 'function') track.requestFrame();
       if (labelSpan) labelSpan.textContent = `${Math.round(((i + 1) / totalFrames) * 100)}%`;
-      await new Promise(r => setTimeout(r, 1000 / fps));
+      nextDeadline += frameMs;
+      const wait = Math.max(0, nextDeadline - performance.now());
+      await new Promise(r => setTimeout(r, wait));
     }
 
     recorder.stop();
