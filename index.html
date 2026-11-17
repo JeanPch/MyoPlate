@@ -1925,6 +1925,9 @@
     border-radius: 2px;
     transition: width 0.2s ease;
   }
+  .mvc-temporal-active .mvc-item-bar-fill {
+    transition: none;
+  }
   .mvc-item-value {
     font-family: ui-monospace, SFMono-Regular, monospace;
     font-size: 12.5px;
@@ -5843,6 +5846,7 @@ function syncExportDockMode() {
   if ($('svg')) $('svg').style.display = is1d ? 'none' : '';
   if ($('btnExportMp4')) $('btnExportMp4').style.display = is1d ? '' : 'none';
   if ($('btnExportGif')) $('btnExportGif').style.display = is1d ? '' : 'none';
+  if ($('view-mvc')) $('view-mvc').classList.toggle('mvc-temporal-active', is1d);
 }
 
 function invalidateTemporalCache() {
@@ -6313,8 +6317,9 @@ async function exportTemporalMp4() {
 
     const isMp4 = mimeType.startsWith('video/mp4');
     const ext = isMp4 ? 'mp4' : 'webm';
-    const { w, h } = getTemporalExportDims(1440, true);
-    if (state.view === '3d' && ctx3d) {
+    const is3d = state.view === '3d' && !!ctx3d;
+    const { w, h } = getTemporalExportDims(is3d ? 1440 : 1280, true);
+    if (is3d) {
       const c3d = $('stage3d');
       const cw = c3d ? (c3d.clientWidth || 600) : 600;
       const ch = c3d ? (c3d.clientHeight || 600) : 600;
@@ -6328,7 +6333,7 @@ async function exportTemporalMp4() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const fps = 30;
+    const fps = is3d ? 60 : 30;
     const frameMs = 1000 / fps;
     const speed = temporalEmg.speed || 1;
     const totalDur = Math.max(0.1, (temporalEmg.duration || ((temporalEmg.nFrames - 1) / 50)) / speed);
@@ -6589,8 +6594,8 @@ async function exportTemporalGif() {
 
     const speed = temporalEmg.speed || 1;
     const totalDur = Math.max(0.1, (temporalEmg.duration || ((temporalEmg.nFrames - 1) / 50)) / speed);
-    const maxFrames = 120;
-    const fps = Math.min(20, Math.max(8, Math.floor(maxFrames / totalDur)));
+    const maxFrames = 200;
+    const fps = Math.min(25, Math.max(10, Math.floor(maxFrames / totalDur)));
     const totalFrames = Math.min(maxFrames, Math.max(2, Math.round(totalDur * fps)));
     const delayCs = Math.max(2, Math.round(100 / fps));
     const hasAlpha = state.bg === 'transparent';
