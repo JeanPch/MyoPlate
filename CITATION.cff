@@ -10,6 +10,13 @@ repository-code: "https://github.com/Technosport/MyoPlate"
 url: "https://technosport.github.io/MyoPlate/"
 license: MIT
 doi: "10.5281/zenodo.24146734"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.24146734"
+    description: "Concept DOI (all versions — always resolves to the latest release)"
+  - type: doi
+    value: "10.5281/zenodo.24306360"
+    description: "Version DOI for v1.2.0"
 version: 1.2.0
 date-released: "2026-11-17"
 abstract: "Interactive sEMG mapping and figure builder for surface electromyography protocol illustration and muscle activation visualization (% MVC)."

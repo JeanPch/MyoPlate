@@ -78,6 +78,8 @@ If you use MyoPlate figures or activation maps in a scientific publication, thes
 ### Recommended Citation (APA)
 > Panchairi, J. (2026). *MyoPlate - Interactive sEMG Mapping & Figure Builder* (Version 1.2.0) [Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24146734
 
+> **Note on DOIs**: `10.5281/zenodo.24146734` is the Zenodo **Concept DOI** (represents all versions and always resolves to the latest release). To cite **v1.2.0** specifically, you may use its **Version DOI**: [`10.5281/zenodo.24306360`](https://doi.org/10.5281/zenodo.24306360).
+
 ### BibTeX
 ```bibtex
 @software{panchairi2026myoplate,
