@@ -2,8 +2,6 @@
 
 **Interactive sEMG figure builder**
 
-[![Technosport amU](https://img.shields.io/badge/Technosport-amU%20%7C%20ISM-002D62?style=flat-square)](https://github.com/Technosport)
-[![Type](https://img.shields.io/badge/Type-Standalone%20Web%20App-009EE2?style=flat-square)](#)
 [![Pages](https://img.shields.io/badge/GitHub%20Pages-Live-26A669?style=flat-square)](https://jeanpch.github.io/MyoPlate/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24146734-blue?style=flat-square)](https://doi.org/10.5281/zenodo.24146734)
 [![License: MIT](https://img.shields.io/badge/Code%20License-MIT-yellow?style=flat-square)](LICENSE)
