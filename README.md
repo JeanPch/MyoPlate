@@ -4,7 +4,7 @@
 
 [![Technosport amU](https://img.shields.io/badge/Technosport-amU%20%7C%20ISM-002D62?style=flat-square)](https://github.com/Technosport)
 [![Type](https://img.shields.io/badge/Type-Standalone%20Web%20App-009EE2?style=flat-square)](#)
-[![Pages](https://img.shields.io/badge/GitHub%20Pages-Live-26A669?style=flat-square)](https://technosport.github.io/MyoPlate/)
+[![Pages](https://img.shields.io/badge/GitHub%20Pages-Live-26A669?style=flat-square)](https://jeanpch.github.io/MyoPlate/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.24146734-blue?style=flat-square)](https://doi.org/10.5281/zenodo.24146734)
 [![License: MIT](https://img.shields.io/badge/Code%20License-MIT-yellow?style=flat-square)](LICENSE)
 [![Data License: CC BY-SA 2.1 JP](https://img.shields.io/badge/Atlas%20License-CC%20BY--SA%202.1%20JP-lightgrey?style=flat-square)](NOTICE.md)
@@ -13,7 +13,7 @@
 >
 > *A 2D vector tool for surface electromyography (sEMG) protocol illustration and muscle activation visualization (% MVC).*
 >
-> *Developed at **Technosport / ISM** (UMR 7287 CNRS - Aix-Marseille Université) • [**Launch Web Application**](https://technosport.github.io/MyoPlate/)*
+> *Developed at **Technosport / ISM** (UMR 7287 CNRS - Aix-Marseille Université) • [**Launch Web Application**](https://jeanpch.github.io/MyoPlate/)*
 
 <p align="center">
   <img src="docs/screenshots/myoplate-heatmap.png" alt="MyoPlate - Surface EMG muscle activation heatmap visualization" width="100%">
@@ -24,7 +24,7 @@
 ## 🚀 Getting Started
 
 ### Online Access (GitHub Pages)
-- **Direct Web Access**: **[technosport.github.io/MyoPlate](https://technosport.github.io/MyoPlate/)**
+- **Direct Web Access**: **[jeanpch.github.io/MyoPlate](https://jeanpch.github.io/MyoPlate/)**
 
 ### Offline / Local Usage
 1. Clone or download this repository.
@@ -89,7 +89,7 @@ If you use MyoPlate figures or activation maps in a scientific publication, thes
   publisher    = {Zenodo},
   version      = {v1.2.0},
   doi          = {10.5281/zenodo.24146734},
-  url          = {https://technosport.github.io/MyoPlate/}
+  url          = {https://jeanpch.github.io/MyoPlate/}
 }
 ```
 

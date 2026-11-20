@@ -6,8 +6,8 @@ authors:
   - family-names: "PANCHAIRI"
     given-names: "Jean"
     affiliation: "Technosport, Institut des Sciences du Mouvement (UMR 7287 CNRS - Aix-Marseille Université)"
-repository-code: "https://github.com/Technosport/MyoPlate"
-url: "https://technosport.github.io/MyoPlate/"
+repository-code: "https://github.com/JeanPch/MyoPlate"
+url: "https://jeanpch.github.io/MyoPlate/"
 license: MIT
 doi: "10.5281/zenodo.24146734"
 identifiers:
