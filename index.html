@@ -5447,7 +5447,9 @@ function renderMvcList() {
     const sub = isEn ? m.fr : m.en;
     const color = heatColor(e.value);
     const pctWidth = Math.min(100, Math.max(0, e.value));
-    const sideBadge = (e.side === 'L' || e.side === 'R') ? `<span class="m-abbr">${e.side}</span>` : '';
+    const sideBadge = (e.side === 'L' || e.side === 'R')
+      ? `<span class="m-abbr" title="${e.side === 'L' ? dict.sideLeft : dict.sideRight}">${e.side === 'L' ? (isEn ? 'L' : 'G') : (isEn ? 'R' : 'D')}</span>`
+      : '';
 
     return `
       <div class="mvc-item" data-id="${m.id}" data-side="${e.side || ''}">
@@ -5466,7 +5468,7 @@ function renderMvcList() {
         <div class="mvc-item-value">
           ${e.value} %
         </div>
-        <button type="button" class="mvc-item-delete" title="${dict.removeActivation}" data-id="${m.id}">&times;</button>
+        <button type="button" class="mvc-item-delete" title="${dict.removeActivation}" data-id="${m.id}" data-side="${e.side || ''}">&times;</button>
       </div>
     `;
   }).join('');
@@ -5477,7 +5479,12 @@ function renderMvcList() {
     btn.addEventListener('click', ev => {
       ev.stopPropagation();
       const id = btn.dataset.id;
-      toggleMuscle(id, false);
+      const side = btn.dataset.side;
+      if (side === 'L' || side === 'R') {
+        toggleMuscleSide(id, side);
+      } else {
+        toggleMuscle(id, false);
+      }
       renderMvcList();
     });
   });
@@ -5818,6 +5825,24 @@ stage.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
 
 // --- MODULE DONNÉES % CMV / % MVC (JSON PRÉCIS ET FORMAT EXEMPLE) ---
 function getExampleObject() {
+  if (state.symmetry === 'asymmetric') {
+    return {
+      unit: "% MVC",
+      symmetry: "asymmetric",
+      measures: [
+        { muscle: "vastus-lateralis", side: "L", mvc: 82.0 },
+        { muscle: "vastus-lateralis", side: "R", mvc: 48.5 },
+        { muscle: "vastus-medialis", side: "L", mvc: 71.0 },
+        { muscle: "vastus-medialis", side: "R", mvc: 39.0 },
+        { muscle: "rectus-femoris", side: "L", mvc: 64.0 },
+        { muscle: "biceps-femoris-long", side: "R", mvc: 55.0 },
+        { muscle: "semitendinosus", side: "R", mvc: 43.0 },
+        { muscle: "gastrocnemius-medial", side: "L", mvc: 68.5 },
+        { muscle: "gastrocnemius-medial", side: "R", mvc: 29.0 },
+        { muscle: "tibialis-anterior", side: "R", mvc: 36.0 }
+      ]
+    };
+  }
   return {
     unit: "% MVC",
     measures: [
@@ -6119,7 +6144,12 @@ function applyTemporalFrame(idx, isInitial = false, alpha = 0, displayTime = nul
     const val = Math.round(raw * 10) / 10;
     if (val < minV) minV = val;
     if (val > maxV) maxV = val;
-    if (tr.side) valByKey.set(`${tr.id}:${tr.side}`, val);
+    if (tr.side === 'L' || tr.side === 'R') {
+      valByKey.set(`${tr.id}:${tr.side}`, val);
+    } else {
+      if (!valByKey.has(`${tr.id}:L`)) valByKey.set(`${tr.id}:L`, val);
+      if (!valByKey.has(`${tr.id}:R`)) valByKey.set(`${tr.id}:R`, val);
+    }
     valById.set(tr.id, val);
   }
 
@@ -7358,8 +7388,14 @@ function update3DColors() {
   const isAsym = state.symmetry === 'asymmetric';
   const entryMap = new Map();
   entries.forEach(e => {
-    const key = isAsym ? `${e.id}:${e.side || 'L'}` : e.id;
-    entryMap.set(key, e);
+    if (!isAsym) {
+      entryMap.set(e.id, e);
+    } else if (e.side === 'L' || e.side === 'R') {
+      entryMap.set(`${e.id}:${e.side}`, e);
+    } else {
+      if (!entryMap.has(`${e.id}:L`)) entryMap.set(`${e.id}:L`, e);
+      if (!entryMap.has(`${e.id}:R`)) entryMap.set(`${e.id}:R`, e);
+    }
   });
 
   const isDarkBg = state.bg === 'black';
@@ -7742,8 +7778,14 @@ function render3DAnnotations(forExport = false) {
   const isAsym = state.symmetry === 'asymmetric';
   const entryMap = new Map();
   entries.forEach(e => {
-    const key = isAsym ? `${e.id}:${e.side || 'L'}` : e.id;
-    entryMap.set(key, e);
+    if (!isAsym) {
+      entryMap.set(e.id, e);
+    } else if (e.side === 'L' || e.side === 'R') {
+      entryMap.set(`${e.id}:${e.side}`, e);
+    } else {
+      if (!entryMap.has(`${e.id}:L`)) entryMap.set(`${e.id}:L`, e);
+      if (!entryMap.has(`${e.id}:R`)) entryMap.set(`${e.id}:R`, e);
+    }
   });
 
   let out = '';
